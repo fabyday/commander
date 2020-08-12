@@ -1,6 +1,5 @@
 
 
-
 class Logger():
     __LOG_LEVEL = 0
     __NO_LOG = 0

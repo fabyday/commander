@@ -31,7 +31,7 @@
 import argparse
 
 import typechecker
-
+import yaml
 
 
 
@@ -44,13 +44,16 @@ class BaseArgsParser(object):
 
 
     """
-    __log_helper_str="-d : Defualt logging, -v : verbose logging, -n : no logging "
-
+    __log_helper_str = "d : Defualt logging, v : verbose logging, s : no logging(silence) "
+    __yml_helper_str = "y : default. if file exists, use yml file for setting. n : don't use yml file.\
+                         only use input option for program setting."
 
 
     #__PRIVATE__FUNCTIONS__#
     def _default_initialize():
-        self._parser.add_argument("--log", type=str, help=BaseArgsparser.__log_helper_str)
+        self._parser.add_argument("--log", type=str, ,help=BaseArgsparser.__log_helper_str)
+        self._parser.add_argument("--use_yml", type=str, default="y", help=BaseArgsparser.__log_helper_str)
+
         self.ellipise_checker = typechecker.StrongTypeChecker()
         self.ellipise_checker.add_allowed_types(...)
         self.list_checker = typechecker.StrongTypeChecker()
@@ -101,6 +104,7 @@ class BaseArgsParser(object):
             see also argsparse.ArgumentParser's add_argument function.
         """
         self._parser.add_argument(*args, **kwrags)
+        return self
 
 
     def get_args_dictionary(self, keyword=...):
@@ -111,21 +115,27 @@ class BaseArgsParser(object):
         data = self.parsed_args
         data = vars(data) #it's dictionary
         if self.ellipise_checker(keyword)
-            pass 
+            new_dict = dict()
+            value = data[keyword]
+            new_dict[key] = value
+            data = new_dict
+            yml_file_path = data.yml
+            dic = self.open_yml(yml_file_path)
+            data.update(dic)
+            
         elif self.list_checker(keyword) : 
             new_dict = dict()
             for key in keyword : 
                 value = data[key]
                 new_dict[key] = value
             data = new_dict
-        else : 
-            new_dict = dict()
-            value = data[keyword]
-            new_dict[key] = value
-            data = new_dict
-                    
+
         return data
 
+    def open_yml(yml_path):
+        with open(yml_path) as file:
+            members = yaml.load(file, yaml.FullLoader)
+        return members
 
     def get_args_keyword(self):
         self.__parse_end()

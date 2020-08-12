@@ -1,9 +1,13 @@
+
+
+
 class StrongTypeChecker(object) : 
     """
         Class StrongTypeChecker
         
         
     """
+    __container_type = [dict, list, tuple, set]
     def __init__(self) : 
         """
             Constructor __init__ 
@@ -16,7 +20,6 @@ class StrongTypeChecker(object) :
         """
         self.__allowed_data_type = dict()
         self.__num_key = 0
-        return self
 
 
 
@@ -49,7 +52,7 @@ class StrongTypeChecker(object) :
         """
         #TODO check overlapped type.
         def alloc_key() :
-            self.__num_key += 1 : 
+            self.__num_key += 1 
             return self.__num_key
         
 
@@ -69,5 +72,5 @@ class StrongTypeChecker(object) :
         return inputs in self.__allowed_data_type.values()
     
     def __call__(self, inputs) : 
-        return __is_allowed_type() :
+        return self.__is_allowed_type(inputs)
 
