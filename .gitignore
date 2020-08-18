@@ -1,0 +1,11 @@
+#COMMANDER Package .gitignore FILE
+# remove byproduct.
+
+#VISUAL STUDIO CODE SETTING FILES
+.vscode/*
+
+
+#PYTHON BASE
+__pycache__/*
+
+

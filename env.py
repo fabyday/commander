@@ -36,7 +36,11 @@ class DirectoryManager(object) :
         self.string_checker = typechecker.StrongTypeChecker().add_allowed_type(str)
         self.common_path = None
     
-    def __init__(self, target_path="", working_directory = ".", target_name_regex=""):
+    def __init__(self,
+                 target_path="",
+                 working_directory = ".", 
+                 target_name_regex=""
+                 ):
         """
             - args 
                 target_path : the directory that you want to work.
@@ -197,20 +201,30 @@ class DirectoryEnvironment(object):
 
 
     """
-    def __initialize_vars():
+    def __initialize_vars(self):
         self.working_directory = None
         self.target_path = None #if Change this you can easily make output path
         self.recompile_flag = False
 
+        #OMIT
         self.omit_desired_depth = None
+        self.omit_flag = False
+
+        #REGEX
+        self.target_name_regex = None
+        self.re = None 
+
+        #DATA
+        self.raw_data_pathes = None
+        self.copy_detected = False
+        self.copy_obj = None 
+
+        #SORT
         self.search_depth = None
         self.sort_option = DESCENDING
 
-        self.raw_data_pathes = None
-        self.copy_detected = False
 
 
-        self.copy_obj = None 
         
     def __init__(self, target_path, working_directory="./", copy_option_from_reference=None):
         """
@@ -221,6 +235,10 @@ class DirectoryEnvironment(object):
                 (DirectoryEnvironment) copy_refrence : refer to 
 
         """
+        
+        #initialize all Variables.
+        self.__initialize_vars()
+
 
         if os.path.exists(working_directory) : 
             self.working_directory = os.path.abspath(working_directory)
@@ -254,11 +272,21 @@ class DirectoryEnvironment(object):
 
         """
         #TODO type checker list and Integer and None
-
+        if desired_depth != None : 
+            self.omit_flag = True
         self.omit_desired_depth = desired_depth
+
         return self
 
-    def set_target_object(self, target_name_regex):
+    def set_target_object(self, target_name_regex=None):
+        """
+            Method set_target_object : 
+                -Args : 
+                    (string) target_name_regex : target_file regex string. it's not directory name. 
+                -Retrun
+                    DirectoryEnvironment : self instance         
+        """
+
         self.target_name_regex = target_name_regex
         return self
     
@@ -269,6 +297,8 @@ class DirectoryEnvironment(object):
         
         
         self.search_depth = search_depth
+        
+        return self
          
 
     
@@ -291,16 +321,28 @@ class DirectoryEnvironment(object):
 
 
 
-        
+        ################# MAIN EXTRACTING LINES ################################################
         #extract directory list. NOT FILES NAME LIST!!
-        if not self.copy_detected : 
-            self.raw_data_pathes = self.__get_subdirectory(base_path)
+        if self.copy_detected : 
+            self.raw_data_patches = self.copy_option_from_reference.raw_data_patches    
         else : 
-            self.raw_data_patches = self.copy_option_from_reference.raw_data_patches
+            #TODO need some Exception or Error handling. it maybe occur some Bug. 
+            self.raw_data_patches = self.__get_subdirectory(base_path)
+        #########################################################################################
+        
+        #Re-ORDER
+        self.raw_data_patches = self.__sort_order_safety(self.raw_data_patches)
+
+        
+        #regex initialize
+        self.re = re.compile(self.target_name_regex)
 
 
 
+        if self.omit_flag : 
+            self.raw_data_patches = self.__omit_path_mask(self.raw_data_patches)
         #TODO post processing may needed.
+        
         
 
         
@@ -311,8 +353,31 @@ class DirectoryEnvironment(object):
         return self
 
 
+    def __sort_order_safety(self, raw_pathes):
+        """
+            Method __sort_order_safety : 
+            sort by Order Safely.
+                -args : 
+                    (list of string) raw_pathes : __get_subdirectory method return Values(list of pathes). 
+
+        """
+        #TODO
+        reverse_flag = False
+        if self.sort_option == DESCENDING :
+            reverse_flag != reverse_flag
+
+        sorted(raw_pathes, key=lambda x : x[-1], reverse = reverse_flag)
+        return raw_pathes
+
 
     def __get_base_path(self):
+        """
+            Method __get_base_path :
+                -args :
+                    None
+                -Return :
+                    (string) path : it's concat working_drectory and target_path. ex. work_dir = "./", and target_path="some_dir" -> return {"./some_dir"}
+        """
         return os.path.join(self.working_directory, self.target_path)
 
 
@@ -333,10 +398,13 @@ class DirectoryEnvironment(object):
             results = self.__get_subdirectory(os.path.join(parent_path, child_path), depth+1 )
             
             for result in results : 
+                result = [ result ]
                 if depth == 0 :
                     path_list.append(result)
                 else : 
-                    path_list.append([parent_path].extend(result))
+                    parent_tmp = [parent_path]
+                    parent_tmp.extend(result)
+                    path_list.append(parent_tmp)
         
         return path_list
 
@@ -362,18 +430,29 @@ class DirectoryEnvironment(object):
         return path_str
 
 
-            
-
-        
-    
-    
-
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        pass
+        """
+            return basepath, item_path
+        """
+        for path in self.raw_data_patches : 
+            file_path = os.path.join(self.__get_base_path(), *path)
+            self.__get_subfile(file_path)
+
+    def __get_subfile(self, path): 
+        if not os.path.isdir(path) : 
+            if self.re.search(path) :
+                yield path
+
+        # if it's Dir
+        for item in os.listdir(path) : 
+            self.__get_subfile(os.path.join(path,item))
+        
+                
+    
         
 
     

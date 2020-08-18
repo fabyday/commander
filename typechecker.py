@@ -114,7 +114,7 @@ class StrongTypeChecker(WeakTypeChecker) :
             if type(data_container) == dict:
                 dictionary_flag = True
             
-            prev_data_type =[ None ]
+            prev_data_type = None
             for data in data_container:
                 if dictionary_flag == True :
                     key_type = recursive_container_checker(key)
