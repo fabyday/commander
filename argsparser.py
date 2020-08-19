@@ -50,8 +50,8 @@ class BaseArgsParser(object):
 
 
     #__PRIVATE__FUNCTIONS__#
-    def _default_initialize():
-        self._parser.add_argument("--log", type=str, ,help=BaseArgsparser.__log_helper_str)
+    def _default_initialize(self):
+        self._parser.add_argument("--log", type=str, help=BaseArgsparser.__log_helper_str)
         self._parser.add_argument("--use_yml", type=str, default="y", help=BaseArgsparser.__log_helper_str)
 
         self.ellipise_checker = typechecker.StrongTypeChecker()
@@ -62,7 +62,7 @@ class BaseArgsParser(object):
 
     
     
-    def _pre_initialize():
+    def _pre_initialize(self):
         """
             FUNCTION _pre_initialize
             ________________________
@@ -70,7 +70,7 @@ class BaseArgsParser(object):
         """
         pass 
 
-    def _post_initialize():
+    def _post_initialize(self):
         """
             FUNCTION __post_initialize
             ________________________
@@ -103,7 +103,7 @@ class BaseArgsParser(object):
             just wrapper function. it's same, add_arguments.
             see also argsparse.ArgumentParser's add_argument function.
         """
-        self._parser.add_argument(*args, **kwrags)
+        self._parser.add_argument(*args, **kwargs)
         return self
 
 
@@ -114,7 +114,7 @@ class BaseArgsParser(object):
         self.__parse_end()
         data = self.parsed_args
         data = vars(data) #it's dictionary
-        if self.ellipise_checker(keyword)
+        if self.ellipise_checker(keyword) :
             new_dict = dict()
             value = data[keyword]
             new_dict[key] = value
