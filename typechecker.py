@@ -4,6 +4,9 @@ class WeakTypeChecker(object) :
     """
         Class WeakTypeChecker
         WeakTypeChecker check primary type and reference type. but it's not support inside of reference.
+        Feature 
+            - support fast mutiple type checking
+            - unsupport to check reference Type's inner type.
         
     """
     
@@ -77,7 +80,11 @@ class StrongTypeChecker(WeakTypeChecker) :
         Class StrongTypeChecker
         StrongTypeChecker check primary type and also check inside of refrence types. like dict, list, tuple, set
         since StrongTypeChecker check inside of reference, type that inside of refrence must be same type.
-        it's not allowed in StrongTypeChecker. example) [[], 1, 2] -> list(list(), Integer, Integer) X
+        it's not allowed in StrongTypeChecker. example) [[], 1, 2] -> (translate) -> list(list(), Integer, Integer) X      
+                                                        [[1], [2],[3]] -> (translate) -> list(list(Integer), list(Integer), list(Integer)) O
+        -Feature 
+            -Support inner type checking but it might be slow than WeakTypeChecker Class
+            -Not Yet Support User Defined Class. it only allow to check Dictionary, List, Tuple, Set
         
     """
     __container_type = [dict, list, tuple, set]
