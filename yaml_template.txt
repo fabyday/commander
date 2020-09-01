@@ -1,0 +1,17 @@
+BASE STRUCTURE
+
+
+name : name of file
+python_abs_main_path: python file path
+model_abs_path : tensorflow model checkpoint directory
+data_abs_path : loaded data path
+excuted_mode : mode name [train phase2 test]
+noise_type : noise type [plain small_hole_noise, sparse_noise]
+
+file_export_abs_path : export output data path.
+
+
+
+
+
+
