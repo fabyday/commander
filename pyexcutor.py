@@ -1,5 +1,5 @@
 import os 
-from . import argsparser
+from commander.argparsehelper import argsparser
 
 #####################################
 #__PYTHON__TENSORFLOW_MODEL_RUNNER__#

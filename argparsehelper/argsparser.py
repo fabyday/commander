@@ -27,10 +27,12 @@
 # MORE ... MORE TABACOO
 
 
+# from __future__ import absolute_import
+
 
 import argparse
-
-import typechecker
+# from commander.checker import typechecker
+from ..checker import typechecker
 import logging
 import yaml
 
