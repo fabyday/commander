@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os 
-import typechecker
 import logging
 
 import re
@@ -21,6 +20,19 @@ class DirecotoryChangeException(Exception):
     pass
 
 
+
+class PathEntity():
+    def __init__(self, basepath="", category_path="", target_name_path = ""):
+        self.basepath = basepath
+        self.category_path = category_path
+        self.target_name_path = target_name_path
+
+
+
+    def __call__(self):
+        os.path.join(self.basepath, self.category_path, self.target_name_path)
+
+
 class DirectoryEnvironment(object):
     """
         Class DirectoryEnvironment : 
@@ -35,6 +47,7 @@ class DirectoryEnvironment(object):
         self.working_directory = None
         self.target_path = None #if Change this you can easily make output path
         self.recompile_flag = False
+        self.base_path = None
 
         #OMIT
         self.omit_desired_depth = None
@@ -58,6 +71,11 @@ class DirectoryEnvironment(object):
         self.generator_obj = None
 
 
+
+        self.current_category = None
+        self.previous_category = None
+
+
         
     def __init__(self, target_path, working_directory="./", copy_option_from_reference=None):
         """
@@ -66,6 +84,7 @@ class DirectoryEnvironment(object):
                 (str) target_dir : absolute path or reletive path. if it is reletive path, current dir is depend on working_directory argument.
                 (str) working_directory : set current directory path.
                 (DirectoryEnvironment) copy_refrence : refer to 
+                bool target_dir_gen : if target path is not exists, make dir recursively.
 
         """
         
@@ -73,14 +92,18 @@ class DirectoryEnvironment(object):
         self.__initialize_vars()
 
 
-        if os.path.exists(working_directory) : 
-            self.working_directory = os.path.abspath(working_directory)
+        if not os.path.exists(working_directory) : 
+            os.makedirs(working_directory)
+        self.working_directory = os.path.abspath(working_directory)
 
         target_path = os.path.normpath(target_path)
         if os.path.exists(os.path.join(self.working_directory, target_path)) :
             self.target_path = target_path
         else : 
-            raise EnvironmentError("the abs path for base path is not exists")
+           
+            self.target_path = target_path
+            os.makedirs(os.path.join(self.working_directory, target_path))
+        
 
 
         if copy_option_from_reference != None : 
@@ -107,6 +130,9 @@ class DirectoryEnvironment(object):
         #TODO type checker list and Integer and None
         if desired_depth != None : 
             self.omit_flag = True
+        if type(desired_depth) != list:
+            desired_depth = [desired_depth]
+
         self.omit_desired_depth = desired_depth
 
         return self
@@ -124,19 +150,18 @@ class DirectoryEnvironment(object):
         return self
     
     #정렬이 중요하지.. 파일의 길이를 일정하게 만들어주는 방법.
-    def set_options(self, search_depth = -1, sort_option=DESCENDING):
+    def set_options(self, dir_search_depth = -1, sort_option=DESCENDING):
         if sort_option in [ASCENDING, DESCENDING, COMMON_NAME] : 
             self.sort_option = sort_option
         
         
-        self.search_depth = search_depth
+        self.search_depth = dir_search_depth
         
         return self
          
 
     
     def compile(self):
-    # def compile(self, recompile_flag = False):
         """
             Method compile :
             
@@ -149,38 +174,62 @@ class DirectoryEnvironment(object):
             - Return 
                     DirectoryEnvironment : self instance
         """
-        base_path = self.__get_base_path() #working dir & target_path 
+        self.base_path = self.get_base_path() #working dir & target_path 
         
 
 
         ################# MAIN EXTRACTING LINES ################################################
         #extract directory list. NOT FILES NAME LIST!!
         if self.copy_detected : 
-            self.raw_data_patches = self.copy_obj.raw_data_patches
+            self.raw_data_patches = copy.deepcopy(self.copy_obj.raw_data_patches)
         else : 
             #TODO need some Exception or Error handling. it maybe occur some Bug. 
-            self.raw_data_patches = self.__get_subdirectory(base_dir=base_path, depth = 0, parent_path = "")
+            self.raw_data_patches = self.__get_subdirectory(base_dir=self.base_path, depth = 0, parent_path = "")
+            self.raw_data_patches = self.__sort_order_safety(self.raw_data_patches)
+            self.raw_data_patches = self.remove_overlapped_dirname(self.raw_data_patches)
+            # self.raw_data_patches = self.__make_to_dictionary(self.raw_data_patches)
+
         #########################################################################################
 
         
         #Re-ORDER
-        self.raw_data_patches = self.__sort_order_safety(self.raw_data_patches)
-
+        
         #regex initialize
         self.re = re.compile(self.target_name_regex)
 
 
 
-        #OMIT 
-        if self.omit_flag : 
-            self.raw_data_patches = self.__omit_path_mask(self.raw_data_patches)
-            self.omitted_data_set = self.remove_overlapped_dirname(self.raw_data_patches)
-            self.omitted_data_set_idx = 0
+        # #OMIT 
+        # if self.omit_flag : 
+        #     self.raw_data_patches = self.__omit_path_mask(self.raw_data_patches)
+        #     self.omitted_data_set = self.remove_overlapped_dirname(self.raw_data_patches)
+        #     self.omitted_data_set_idx = 0
+
         #TODO post processing may needed.
         
 
         
         return self
+
+    def __make_to_dictionary(self, pathes):
+        """
+            pathes : [ [common/path1/some1] .... [common/path2/some2] ] 
+            return 
+                dictionary 
+                {
+                    some1 : [[common, path1, some1], [common, path2, some2]], 
+                    some2 : [[common, path1, some2]],  [common, path2, some2]]
+                }
+        """
+        path_label_dict = dict()
+        for path in pathes : 
+            key = path[-1]
+            if key not in path_label_dict:
+                path_label_dict[key] = [path]
+            else :
+                path_label_dict[key].append(path)
+        
+        return path_label_dict
 
     def remove_overlapped_dirname(self, data):
         
@@ -212,7 +261,7 @@ class DirectoryEnvironment(object):
         return raw_pathes
 
 
-    def __get_base_path(self):
+    def get_base_path(self):
         """
             Method __get_base_path :
                 -args :
@@ -272,13 +321,19 @@ class DirectoryEnvironment(object):
                 -return omited path_list 
 
         """ 
+
+
+        for idx in range(len(path)) : 
+            path[idx] = self.omit_path(path[idx])
+        return path
+    
+    def omit_path(self, path):
         path_str = ""       
         for idx in range(len(path)) :
             if idx in self.omit_desired_depth : 
                 continue
             path_str += path[idx]
         return path_str
-
 
 
     def __iter__(self):
@@ -298,27 +353,21 @@ class DirectoryEnvironment(object):
             Method __generator :
                 make generator when function __iter__ was called.
         """
-        def is_dir_changed(path1, path2):
-            return os.path.dirname(path1) != os.path.dirname(path2)
+        
+        
 
-        for path in self.raw_data_patches : 
-            dir_path = os.path.join(self.__get_base_path(), *path) # abs path.
-            
+        for  path in (self.raw_data_patches) : 
+            dir_path = os.path.join(self.base_path, *path) # abs path.
+            self.current_category = path
             # for p in  :
             sub_file_path = self.__get_subfile(dir_path)
-            for idx, complete_path in enumerate(sub_file_path) :
-                try:
-                    dir_change_flag = is_dir_changed(sub_file_path[idx+1], complete_path)
-                except IndexError as e:
-                    if len(sub_file_path) != 0 : # it means end of path list.
-                        dir_change_flag = True
-                    else :
-                        raise e
+            for  complete_path in (sub_file_path) :
+                
 
-                yield dir_change_flag, complete_path
+                yield os.path.join(self.base_path, *path, complete_path)
                 
                 
-    def __get_subfile(self, path): 
+    def __get_subfile(self, base_path, child=""): 
         """
             Method __get_subfile : 
                 - Args : 
@@ -326,21 +375,48 @@ class DirectoryEnvironment(object):
                 - Return : 
                     path_list : path lists : ["path/to/file1", "path/to/file2", ..., "path/to/file_{n}"]
         """
-
+        path = os.path.join(base_path, child)
         # Return Value is ["path/to/file"] or []
         if not os.path.isdir(path) : 
             if self.re.search(path) :
-                return [path]
+                return [child]
             return []
 
         # if it's Dir
         path_list = []
         for item in os.listdir(path) : 
-            path_list.extend( self.__get_subfile(os.path.join(path,item)) )
+            path_list.extend( self.__get_subfile( base_path, os.path.join(child, item) ) )
         
         return path_list
 
-    def next_category_path(self):
+    def next_category_path(self, x):
+        self.copy_obj.get_base_path()
         names = self.omitted_data_set[self.omitted_data_set_idx]
         self.omitted_data_set_idx += 1
         return names
+
+    def get_current_category(self):
+        pass
+
+    def get_save_flag(self, x):
+        flag = False
+        if self.copy_obj.search_depth == -1 : 
+            flag = True
+        else : 
+            cur_category = self.copy_obj.get_current_category()
+            cur_category = self.omit_path(cur_category)
+            if cur_category != self.previous_category:
+                flag = True
+            self.previous_category = cur_category
+            
+        return flag
+
+    def transfrom_name(self, x ):
+        input_base = self.copy_obj.get_base_path()
+        output_base =self.base_path
+        splitted_list = os.path.split(x) 
+        for key in input_base:
+            splitted_list.remove(key)
+
+    def get_directory_name():
+        return self.previous_category

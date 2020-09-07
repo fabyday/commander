@@ -12,7 +12,7 @@ import os
 
 from commander.noise.geometry_noise import bummpy_noise
 
-class NoiseGenerator(object):
+class FreqNoiseGenerator(object):
     """
         Class HoleNoiseGenerator
             this class is C/C++ dynamic Libary wrapper Class.

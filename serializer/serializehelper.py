@@ -77,17 +77,17 @@ class SerializeHelper():
         """
             main Method
         """
-        if self.compiled : 
+        if not self.compiled : 
             raise Exception("Not compiled.")
 
 
-        for dir_change_flag, path in self.input_env:
+        for  path in self.input_env:
             
             result = self.__load_from_path(path)
             result = self.__excute_data_processing(result)
             self.__tmp_store(result)
 
-            if dir_change_flag : 
+            if self.output_env.get_save_flag() : 
                 part_result = self.__tmp_load()
                 self.__save_by_directory(part_result)
 
@@ -120,6 +120,8 @@ class SerializeHelper():
         if self.tmp_store_cls_or_func != None and data != None:
             previous_data = self.__data 
             self.__data = self.tmp_store_cls_or_func(previous_data, data)
+        else : 
+            self.__data = data
         
         
 
@@ -130,7 +132,10 @@ class SerializeHelper():
         val = None
         if self.tmp_load_cls_or_func != None and self.__data != None:
             val = self.tmp_load_cls_or_func(self.__data)
-            self.__data = None
+        else : 
+            val = self.__data
+        
+        self.__data = None
         return val
     
 
@@ -147,5 +152,5 @@ class SerializeHelper():
             final data save processing. 
             call __save_from_data function in this function
         """
-        path = self.output_env.next_category_path()
+        path = self.output_env.get_directory_name()
         self.__save_from_data(path, data)
