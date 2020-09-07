@@ -16,13 +16,22 @@ COMMON_NAME = 2
 SAVE_SAME_AS_ORIGINAL = 0
 SAVE_EACH_PRIORITY = 1
 
-class DirecotoryChangeException(Exception):
-    pass
 
 
 
 class PathEntity():
-    def __init__(self, basepath="", category_path="", target_name_path = ""):
+    """
+        Class PathEntity : 
+            encapsulated Path. 
+    """
+    def __init__(self, basepath="", category_path=[""], target_name_path = ""):
+        """
+            ARGS :
+                ( String ) basepath : basepath := working_directory + target_directory.
+                ( List of String ) category_path : child of base path.
+                ( String ) target_name_path : child of category_path. it is real file path.
+
+        """
         self.basepath = basepath
         self.category_path = category_path
         self.target_name_path = target_name_path
@@ -30,7 +39,7 @@ class PathEntity():
 
 
     def __call__(self):
-        os.path.join(self.basepath, self.category_path, self.target_name_path)
+        return os.path.join(self.basepath, *self.category_path, self.target_name_path)
 
 
 class DirectoryEnvironment(object):
@@ -70,19 +79,15 @@ class DirectoryEnvironment(object):
         #GENERATOR OBJECT
         self.generator_obj = None
 
+        self.sep = os.path.sep
 
 
-        self.current_category = None
-        self.previous_category = None
-
-
-        
     def __init__(self, target_path, working_directory="./", copy_option_from_reference=None):
         """
             Method __init__ : 
             - args 
                 (str) target_dir : absolute path or reletive path. if it is reletive path, current dir is depend on working_directory argument.
-                (str) working_directory : set current directory path.
+                (str) working_directory : set current directory path. if target_dir is abs path. working directory path is basepath of target_dir
                 (DirectoryEnvironment) copy_refrence : refer to 
                 bool target_dir_gen : if target path is not exists, make dir recursively.
 
@@ -92,16 +97,16 @@ class DirectoryEnvironment(object):
         self.__initialize_vars()
 
 
-        if not os.path.exists(working_directory) : 
-            os.makedirs(working_directory)
         self.working_directory = os.path.abspath(working_directory)
 
-        target_path = os.path.normpath(target_path)
-        if os.path.exists(os.path.join(self.working_directory, target_path)) :
-            self.target_path = target_path
-        else : 
-           
-            self.target_path = target_path
+        
+        self.target_path = os.path.normpath(target_path)
+        if os.path.isabs(self.target_path) : 
+            self.working_directory = os.path.dirname(self.target_path)
+            self.target_path = os.path.basename(self.target_path)
+
+        
+        if not os.path.exists(os.path.join(self.working_directory, self.target_path)) :
             os.makedirs(os.path.join(self.working_directory, target_path))
         
 
@@ -115,7 +120,8 @@ class DirectoryEnvironment(object):
             #     .set_target_object(copy_option_from_reference.target_name_regex)
             #     .set_options(copy_option_from_reference.sort_option)
             
-        
+        self.omit_depth(None)
+        self.set_options()
     def omit_depth(self, desired_depth=None):
         """
             Method omit_depth : 
@@ -187,7 +193,7 @@ class DirectoryEnvironment(object):
             self.raw_data_patches = self.__get_subdirectory(base_dir=self.base_path, depth = 0, parent_path = "")
             self.raw_data_patches = self.__sort_order_safety(self.raw_data_patches)
             self.raw_data_patches = self.remove_overlapped_dirname(self.raw_data_patches)
-            # self.raw_data_patches = self.__make_to_dictionary(self.raw_data_patches)
+            self.raw_data_patches = self.__make_to_dictionary(self.raw_data_patches)
 
         #########################################################################################
 
@@ -200,10 +206,10 @@ class DirectoryEnvironment(object):
 
 
         # #OMIT 
-        # if self.omit_flag : 
-        #     self.raw_data_patches = self.__omit_path_mask(self.raw_data_patches)
-        #     self.omitted_data_set = self.remove_overlapped_dirname(self.raw_data_patches)
-        #     self.omitted_data_set_idx = 0
+        if self.omit_flag : 
+            self.raw_data_patches = self.__omit_path_mask(self.raw_data_patches)
+            self.raw_data_patches = self.remove_overlapped_dirname(self.raw_data_patches)
+            
 
         #TODO post processing may needed.
         
@@ -218,7 +224,7 @@ class DirectoryEnvironment(object):
                 dictionary 
                 {
                     some1 : [[common, path1, some1], [common, path2, some2]], 
-                    some2 : [[common, path1, some2]],  [common, path2, some2]]
+                    some2 : [[common, path1, some2],  [common, path2, some2]]
                 }
         """
         path_label_dict = dict()
@@ -230,6 +236,22 @@ class DirectoryEnvironment(object):
                 path_label_dict[key].append(path)
         
         return path_label_dict
+
+    def find_path_from_dict(self, path):
+        """
+            ARGS :
+                path [path, to, some1]
+                inner path dict {
+                                    some1 : [ [path, to], [path2, to] ] 
+                                }
+            RETURN : 
+                [path, to, some1]
+        """
+        key = path[-1]
+        prefix = self.raw_data_patches[key]
+        prefix.append(key)
+        path = self.omit_path(prefix) # if Path omitted. omitted path is removed.
+        return path 
 
     def remove_overlapped_dirname(self, data):
         
@@ -312,7 +334,7 @@ class DirectoryEnvironment(object):
             
 
 
-    def __omit_path_mask(self, path):
+    def __omit_path_mask(self, path_dict):
         """
             Method __omit_path : 
                 omit path base on Variable self.omit_desired_path
@@ -323,16 +345,22 @@ class DirectoryEnvironment(object):
         """ 
 
 
-        for idx in range(len(path)) : 
-            path[idx] = self.omit_path(path[idx])
-        return path
+        for key in path_dict : 
+            for idx in range(len(path_dict[key])) :
+                path_dict[key][idx] = self.omit_path(path_dict[key][idx])
+        return path_dict
     
     def omit_path(self, path):
-        path_str = ""       
+        
+        """
+            RETURN
+                ['some','path','to']
+        """
+        path_str = []       
         for idx in range(len(path)) :
             if idx in self.omit_desired_depth : 
                 continue
-            path_str += path[idx]
+            path_str += [path[idx]]
         return path_str
 
 
@@ -346,27 +374,7 @@ class DirectoryEnvironment(object):
             
         """
         return next(self.generator_obj)
-        
-
-    def __generator(self):
-        """
-            Method __generator :
-                make generator when function __iter__ was called.
-        """
-        
-        
-
-        for  path in (self.raw_data_patches) : 
-            dir_path = os.path.join(self.base_path, *path) # abs path.
-            self.current_category = path
-            # for p in  :
-            sub_file_path = self.__get_subfile(dir_path)
-            for  complete_path in (sub_file_path) :
-                
-
-                yield os.path.join(self.base_path, *path, complete_path)
-                
-                
+            
     def __get_subfile(self, base_path, child=""): 
         """
             Method __get_subfile : 
@@ -387,36 +395,41 @@ class DirectoryEnvironment(object):
         for item in os.listdir(path) : 
             path_list.extend( self.__get_subfile( base_path, os.path.join(child, item) ) )
         
-        return path_list
+        return path_list        
 
-    def next_category_path(self, x):
-        self.copy_obj.get_base_path()
-        names = self.omitted_data_set[self.omitted_data_set_idx]
-        self.omitted_data_set_idx += 1
-        return names
+    def __generator(self):
+        """
+            Method __generator :
+                make generator when function __iter__ was called.
+        """
+        
+        
 
-    def get_current_category(self):
-        pass
+        for  category_key in (self.raw_data_patches) : 
+            path_list = self.raw_data_patches[category_key]
+            for path in path_list : 
+                dir_path = os.path.join(self.base_path, *path) # abs path.
+                # for p in  :
+                sub_file_path = self.__get_subfile(dir_path)
+                for  complete_path in (sub_file_path) :
+                    
 
-    def get_save_flag(self, x):
-        flag = False
-        if self.copy_obj.search_depth == -1 : 
-            flag = True
-        else : 
-            cur_category = self.copy_obj.get_current_category()
-            cur_category = self.omit_path(cur_category)
-            if cur_category != self.previous_category:
-                flag = True
-            self.previous_category = cur_category
-            
-        return flag
+                    yield PathEntity(self.base_path, path, complete_path)
+                
+    
 
-    def transfrom_name(self, x ):
-        input_base = self.copy_obj.get_base_path()
-        output_base =self.base_path
-        splitted_list = os.path.split(x) 
-        for key in input_base:
-            splitted_list.remove(key)
 
-    def get_directory_name():
-        return self.previous_category
+    def transform_path_entity(self, path_entity):
+        """
+            transform path Entity to Current(Output Env) Path
+        """
+        path_entity.basepath = self.base_path
+        input_category_path = path_entity.category_path
+        
+        path_entity.category_path = self.omit_path(input_category_path)
+        
+        path_precondiction = os.path.dirname(path_entity())
+        if not os.path.exists(path_precondiction):
+            os.makedirs(path_precondiction)
+
+        return path_entity

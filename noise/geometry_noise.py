@@ -100,7 +100,7 @@ def get_normal(vertex_list,facial_list):
         vertex_normal_list[f] = face_normal_list[i]
         
         
-    return (face_normal_list, vertex_normal_list/ np.linalg.norm(vertex_normal_list, axis=1).reshape(5023,1))
+    return (face_normal_list, vertex_normal_list/ np.linalg.norm(vertex_normal_list, axis=1).reshape(vertex_list.shape[0],1))
 
 
 

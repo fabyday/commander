@@ -1,6 +1,6 @@
 from . import serialize
 from ..envhelper.env import DirectoryEnvironment
-
+import logging
 env = DirectoryEnvironment
 
 class SerializeHelper():
@@ -28,7 +28,8 @@ class SerializeHelper():
                  data_excute_cls_or_func = None, 
                  tmp_store_cls_or_func=None, 
                  tmp_load_cls_or_func = None,
-                 output_path_base_save_cls_or_func = None
+                 output_path_base_save_cls_or_func = None,
+                 **kwargs
                  ):
         """
             
@@ -42,12 +43,19 @@ class SerializeHelper():
         """
         self.__initialize_vars()
         self.set_env(input_env, output_env)
-         
-        self.input_path_base_load_cls_or_func = input_path_base_load_cls_or_func
-        self.data_excute_cls_or_func = data_excute_cls_or_func
-        self.tmp_store_cls_or_func = tmp_store_cls_or_func
-        self.tmp_load_cls_or_func = tmp_load_cls_or_func
-        self.output_path_base_save_cls_or_func = output_path_base_save_cls_or_func
+        if 'cls' in kwargs:
+            function_class = kwargs['cls']
+            self.input_path_base_load_cls_or_func = function_class.load_file
+            self.data_excute_cls_or_func = function_class.data_excute
+            self.tmp_store_cls_or_func = function_class.tmp_store
+            self.tmp_load_cls_or_func = function_class.tmp_load
+            self.output_path_base_save_cls_or_func = function_class.save_file
+        else : 
+            self.input_path_base_load_cls_or_func = input_path_base_load_cls_or_func
+            self.data_excute_cls_or_func = data_excute_cls_or_func
+            self.tmp_store_cls_or_func = tmp_store_cls_or_func
+            self.tmp_load_cls_or_func = tmp_load_cls_or_func
+            self.output_path_base_save_cls_or_func = output_path_base_save_cls_or_func
 
         self.__data = None
         self.__compiled = False
@@ -81,15 +89,16 @@ class SerializeHelper():
             raise Exception("Not compiled.")
 
 
-        for  path in self.input_env:
+        for  path_entity in self.input_env:
             
-            result = self.__load_from_path(path)
+            result = self.__load_from_path(path_entity)
             result = self.__excute_data_processing(result)
             self.__tmp_store(result)
-
-            if self.output_env.get_save_flag() : 
-                part_result = self.__tmp_load()
-                self.__save_by_directory(part_result)
+            part_result = self.__tmp_load()
+            
+            output_entity = self.output_env.transform_path_entity(path_entity)
+            logging.info("output : " + output_entity())
+            self.__save_from_data(output_entity, part_result)
 
 
     # __PRIVATE__METHOD__ #
@@ -139,18 +148,10 @@ class SerializeHelper():
         return val
     
 
-    def __save_from_data(self, path, data):
+    def __save_from_data(self, path_entity, data):
         """
             final data save processing
         """
-        if self.output_path_base_save_cls_or_func != None and path != None and data != None :
-            self.input_path_base_load_cls_or_func(path, data)
-        
-        
-    def __save_by_directory(self, data):
-        """
-            final data save processing. 
-            call __save_from_data function in this function
-        """
-        path = self.output_env.get_directory_name()
-        self.__save_from_data(path, data)
+        if self.output_path_base_save_cls_or_func != None and path_entity != None and data != None :
+
+            self.output_path_base_save_cls_or_func(path_entity, data)

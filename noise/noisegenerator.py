@@ -94,14 +94,24 @@ class HoleNoiseGenerator():
     def __init__(self, 
                 eye_vector, 
                 valid_angular, 
-                iterative_roation_x = 0, 
-                iterative_roation_y = 0, 
-                iterative_roation_z = 0,
-                rotate_term = 0
+                iterative_roation_size_x = 0, 
+                iterative_roation_size_y = 0, 
+                iterative_roation_size_z = 0,
+                rotate_order = [0, 1, 2],
+                rotate_term = [-1, -1, -1]
                 ):
         """
         """
-        pass 
+        self.__initialize_vars()
+        self.eye_vector = eye_vector
+        self.valid_angular = valid_angular
+        self.x_rotate = iterative_roation_size_x
+        self.y_rotate = iterative_roation_size_y
+        self.z_rotate = iterative_roation_size_z
+        
+        self.rotate_order = rotate_order
+        self.rotate_term = rotate_term
+        
 
     def set_eye(self, eye_vector):
         """
@@ -147,7 +157,12 @@ class HoleNoiseGenerator():
             Method compile()
         """
 
-        assert len(self.eye_vector.shape) == 1, "it's not vector."
+        if type(self.eye_vector) != np.ndarray : 
+            self.eye_vector = np.array(self.eye_vector)
+            
+        self.eye_vector = self.eye_vector.reshape(1, -1)
+        print(self.eye_vector, self.eye_vector.shape)
+        assert len(self.eye_vector.shape) == 2, "it's not vector."
         self.eye_vector = self.eye_vector / np.linalg.norm(self.eye_vector) # process UNIT Vector
         self.valid_angular = self.valid_angular % self.full_angle
         
@@ -166,7 +181,6 @@ class HoleNoiseGenerator():
         """
         
         #Calcuating Edge(Vector)
-        vertex_dim = len(vertice.shape[-1])
         
         v1 = vertice[0] - vertice[1]
         v2 = vertice[1] - vertice[2]
@@ -244,32 +258,36 @@ class HoleNoiseGenerator():
                 
 
         #calculating Face Normal Vectors.
-        face_normal = np.empty(face)
+        face_normal = np.zeros_like(face).astype(np.float32)
         for idx, face_row in enumerate(face) : 
             normal = self.__get_normal_vector( vertex[face_row] ) 
+            normal /= np.linalg.norm(normal, 2)
             face_normal[ idx, : ] = normal
         
-
         # Normal Per each Vertex.
         # TODO check libIGL. maybe exists, normal functions. now it is naive solution.
         vertex_normal = np.zeros_like(vertex)
         for idx in range(vertex_size) : 
             v_normal = np.mean( face_normal[neighbor_face[idx]], axis = 0 )
-            v_normal /= np.norm(v_normal, 2)
+            v_normal /= np.linalg.norm(v_normal, 2)
             vertex_normal[ idx, : ] = v_normal
 
 
 
-        radian = np.cos(self.valid_angular * np.pi / self.full_angle )
-        
+        radian = np.cos(self.valid_angular * np.pi / (self.full_angle/2) )
+
+
         vertex_angular = vertex_normal.dot(self.eye_vector.T)
 
-        mask = vertex_angular[vertex_angular < radian ]
-        
+        mask = vertex_angular < radian
+        mask = mask.reshape(-1) #Shape [Vertex_size]
+        mask = mask != False # switch False to True, True to False
 
 
         #tmporary for ... testing. if that vertex is hole info. it fills with 1.
-        vertex[not mask] = np.array([1., 1., 1.])
+        # vertex[mask] = np.array([1., 1., 1.])
+        vertex[mask] = np.array([0., 0., 0.])
+
         result_vertex = vertex
         # result_vertex = vertex[mask]
 
