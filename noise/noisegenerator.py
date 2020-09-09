@@ -285,8 +285,8 @@ class HoleNoiseGenerator():
 
 
         #tmporary for ... testing. if that vertex is hole info. it fills with 1.
-        # vertex[mask] = np.array([1., 1., 1.])
-        vertex[mask] = np.array([0., 0., 0.])
+        vertex[mask] = np.array([1., 1., 1.])
+        # vertex[mask] = np.array([0., 0., 0.])
 
         result_vertex = vertex
         # result_vertex = vertex[mask]

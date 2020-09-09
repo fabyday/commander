@@ -1,9 +1,9 @@
 COMMANDER
 ==========
-THIS PACKAGE HELPS DATA HANDLING.
+Good day commanderTHIS PACKAGE HELPS DATA HANDLING.
 
 
-IT SUPPORTS 
+IT SUPPORTS ...
 1. DATA PREPROCESSING 
 2. DIRECTORY MANAGING
 3. ADD NOISE(Qualify ONLY 3D MESH DATA)
@@ -16,3 +16,9 @@ IT SUPPORTS
     |- .json or .yml
     |- data or save_files.
 
+
+## Introduce
+
+
+
+## Usage

@@ -35,6 +35,7 @@ class PathEntity():
         self.basepath = basepath
         self.category_path = category_path
         self.target_name_path = target_name_path
+        self.end_flag = False
 
 
 

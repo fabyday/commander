@@ -90,17 +90,22 @@ class SerializeHelper():
 
 
         for  path_entity in self.input_env:
-            
-            result = self.__load_from_path(path_entity)
-            result = self.__excute_data_processing(result)
-            self.__tmp_store(result)
-            part_result = self.__tmp_load()
-            
-            output_entity = self.output_env.transform_path_entity(path_entity)
-            logging.info("output : " + output_entity())
-            self.__save_from_data(output_entity, part_result)
+            self.__full_routine(path_entity)
+        path_entity.end_flag = True
+        self.__full_routine(path_entity)
 
 
+
+
+    def __full_routine(self, path_entity):
+        result = self.__load_from_path(path_entity)
+        result = self.__excute_data_processing(result)
+        self.__tmp_store(result)
+        part_result = self.__tmp_load()
+        
+        output_entity = self.output_env.transform_path_entity(path_entity)
+        logging.info("output : " + output_entity())
+        self.__save_from_data(output_entity, part_result)
     # __PRIVATE__METHOD__ #
 
     def __load_from_path(self, path):
@@ -117,7 +122,7 @@ class SerializeHelper():
             excute data processing
         """
         val = None
-        if self.data_excute_cls_or_func != None and data != None:
+        if self.data_excute_cls_or_func != None :
             val = self.data_excute_cls_or_func(data)
         return val
     
@@ -126,7 +131,7 @@ class SerializeHelper():
         """
             tmp save data.
         """
-        if self.tmp_store_cls_or_func != None and data != None:
+        if self.tmp_store_cls_or_func != None :
             previous_data = self.__data 
             self.__data = self.tmp_store_cls_or_func(previous_data, data)
         else : 
@@ -139,7 +144,7 @@ class SerializeHelper():
             tmp saved data load preprocessing.
         """
         val = None
-        if self.tmp_load_cls_or_func != None and self.__data != None:
+        if self.tmp_load_cls_or_func != None :
             val = self.tmp_load_cls_or_func(self.__data)
         else : 
             val = self.__data
@@ -152,6 +157,6 @@ class SerializeHelper():
         """
             final data save processing
         """
-        if self.output_path_base_save_cls_or_func != None and path_entity != None and data != None :
+        if self.output_path_base_save_cls_or_func != None and path_entity != None :
 
             self.output_path_base_save_cls_or_func(path_entity, data)

@@ -9,11 +9,12 @@ class BaseFileIoClass():
         self.data = None
 
     def load_file(self, path_entity):
-        result = dict()
-        v, f = serialize.load_from_mesh(path_entity())
-        result['v'] = v
-        result['f'] = f
-        return result
+        if path_entity.end_flag == False : 
+            result = dict()
+            v, f = serialize.load_from_mesh(path_entity())
+            result['v'] = v
+            result['f'] = f
+            return result
     
     def data_excute(self, data):
         return data
@@ -26,4 +27,5 @@ class BaseFileIoClass():
 
 
     def save_file(self, path_entity, data):
-        serialize.save_to_mesh(path_entity(), **data)
+        if path_entity.end_flag == False :
+            serialize.save_to_mesh(path_entity(), **data)
