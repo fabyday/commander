@@ -87,7 +87,7 @@ class BaseArgsParser(object):
         self._parser.add_argument("-o","--overwrite", action = "store_true", help="yaml file properties overwrite parsing properties.")                                
         
         
-        self._parser.add_argument("--yaml", type=str, help="yml file path.")                                
+        self._parser.add_argument("--yaml", type=str, default="test_phase1_plain.yml",help="yml file path.")                                
         
 
 
@@ -111,7 +111,7 @@ class BaseArgsParser(object):
 
         
         #__PROCESSING__#
-        self.parsed_data = self.__yaml_extract(self.parsed_data)
+        # self.parsed_data = self.__yaml_extract(self.parsed_data)
 
 
 
