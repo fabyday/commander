@@ -339,9 +339,26 @@ def generate_neighborhood(vertex, face):
 class DownSampleGenerator(object):
     def __init__(self, reference_v, referece_f, factor=1/4):
         self.factor = factor
+        self.v = reference_v
+        self.f = referece_f
         self.ds_f, self.ds_D = qslim_decimator_transformer(Mesh(reference_v, referece_f), factor=self.factor)
+    
     def __call__(self, vertex, face):
         
         reduced_v = self.ds_D.dot(vertex)
         return reduced_v, self.ds_f
+
+class InverseDownsampleGenerator(object):
+    """
+        Inverse Upsample Generator
+    """
+    def __init__(self, downsample_gen, reduce_reference_v, reduce_reference_f):
+        
+        self.downsample_gen = downsample_gen
+        self.U = setup_deformation_transfer(source=Mesh(reduce_reference_v, reduce_reference_f), target=Mesh(downsample_gen.v, downsample_gen.f))
+
+
+    def __call__(self, vertex, face):
+        upsampled_v = self.U.dot(vertex)
+        return upsampled_v, self.downsample_gen.f
 
